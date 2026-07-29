@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Dash Shooter Prototype</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="startScreen" class="overlay">
+    <div class="overlay-panel overlay-panel-horizontal">
+
+        <div class="overlay-panel-media">
+            <img class="overlay-logo" src="https://assets.skool.com/f/0f7f15bc8d494ed0b4bfb968b9a216e4/541fffc1cea14960993a5a8e0658ab60598d9b6c653e411abc475e6338312e3f" alt="logo">
+        </div>
+
+        <div class="overlay-panel-content">
+            <div class="overlay-title">SQUARES VS CIRCLES</div>
+            <div class="overlay-subtitle">CONTROLS</div>
+
+            <div class="controls-config">
+                <div class="control-row">
+                    <span class="control-desc">Move / Dash</span>
+                    <div class="control-keys"><kbd>A</kbd><kbd>D</kbd></div>
+                </div>
+                <div class="control-row">
+                    <span class="control-desc">Jump</span>
+                    <div class="control-keys"><kbd>W</kbd></div>
+                </div>
+                <div class="control-row">
+                    <span class="control-desc">Fly (hold)</span>
+                    <div class="control-keys"><kbd>Q</kbd></div>
+                </div>
+                <div class="control-row">
+                    <span class="control-desc">Charge Blast (hold / release)</span>
+                    <div class="control-keys"><kbd>SPACE</kbd></div>
+                </div>
+                <div class="control-row">
+                    <span class="control-desc">Regen Power (hold)</span>
+                    <div class="control-keys"><kbd>S</kbd></div>
+                </div>
+                <div class="control-row">
+                    <span class="control-desc">Melee / Teleport Strike</span>
+                    <div class="control-keys"><kbd>CLICK</kbd></div>
+                </div>
+            </div>
+
+            <button id="startButton" class="overlay-btn">START</button>
+        </div>
+
+    </div>
+</div>
+
+<div id="gameOverScreen" class="overlay" style="display:none;">
+    <div class="overlay-panel">
+        <div class="overlay-title">GAME OVER</div>
+        <div class="overlay-subtitle">RUN SUMMARY</div>
+
+        <div class="stats-recap">
+            <div class="recap-box">
+                <span class="recap-label">HITS</span>
+                <span class="recap-value" id="finalHits">0</span>
+            </div>
+            <div class="recap-box">
+                <span class="recap-label">COMBO</span>
+                <span class="recap-value" id="finalCombo">0</span>
+            </div>
+            <div class="recap-box">
+                <span class="recap-label">WINS</span>
+                <span class="recap-value" id="finalWins">0</span>
+            </div>
+        </div>
+
+        <button id="restartButton" class="overlay-btn">PLAY AGAIN</button>
+    </div>
+</div>
+
+<div id="hud-logo">
+    <img src="https://assets.skool.com/f/0f7f15bc8d494ed0b4bfb968b9a216e4/541fffc1cea14960993a5a8e0658ab60598d9b6c653e411abc475e6338312e3f" alt="logo">
+</div>
+
+<div id="hud">
+    <div class="hud-bar-row">
+        <span class="hud-label">HEALTH</span>
+        <div class="hud-bar-track">
+            <div class="hud-bar-fill health-fill" id="healthFill"></div>
+            <div class="hud-bar-segments"></div>
+        </div>
+        <span class="hud-value" id="healthValue">100</span>
+    </div>
+
+    <div class="hud-bar-row">
+        <span class="hud-label">POWER LEVEL</span>
+        <div class="hud-bar-track">
+            <div class="hud-bar-fill power-fill" id="powerFill"></div>
+            <div class="hud-bar-segments"></div>
+        </div>
+        <span class="hud-value" id="powerValue">100</span>
+    </div>
+</div>
+
+<div id="hud-stats">
+    <div class="stat-box stat-hits">
+        <span class="stat-label">HITS</span>
+        <span class="stat-value" id="hitsValue">0</span>
+    </div>
+    <div class="stat-box stat-combo">
+        <span class="stat-label">COMBO</span>
+        <span class="stat-value" id="comboValue">0</span>
+    </div>
+    <div class="stat-box stat-wins">
+        <span class="stat-label">WINS</span>
+        <span class="stat-value" id="winsValue">0</span>
+    </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+
+</body>
+</html>
