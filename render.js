@@ -6,7 +6,7 @@ import { canvas, ctx } from "./dom.js";
 import { world, player, bosses, camera, activeObjects, screenShake } from "./state.js";
 import { clamp } from "./math.js";
 import { drawFlameParticles } from "./particles.js";
-import { BACKGROUND_URL, PLAYER_IDLE_URL, PLAYER_FLY_URL, PLAYER_SPRITE_SCALE } from "./constants.js";
+import { BACKGROUND_URL, PLAYER_IDLE_URL, PLAYER_FLY_URL, PLAYER_SPRITE_SCALE, PLAYER_SPRITE_Y_OFFSET } from "./constants.js";
 import { SHAKE_DURATION_FRAMES } from "./constants.js";
 
 // =================================================
@@ -350,7 +350,7 @@ function drawPlayer() {
         // grows without moving the character's feet or changing
         // any collision math elsewhere
         const centerX = player.x + player.width / 2;
-        const drawY = player.y + player.height - drawH;
+        const drawY = player.y + player.height - drawH + PLAYER_SPRITE_Y_OFFSET;
 
         // mirror horizontally around the sprite's own center based
         // on player.facing (1 = right/unflipped, -1 = left/mirrored).
