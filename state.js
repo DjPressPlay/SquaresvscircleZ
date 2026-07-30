@@ -30,6 +30,11 @@ export const player = {
     flying: false,
     boosting: false,
 
+    // which way the sprite faces: 1 = right, -1 = left.
+    // purely visual (mirrors the drawn sprite) - never affects
+    // aiming, hitboxes, or attack targeting
+    facing: 1,
+
     health: 300,
     maxHealth: 300,
 
