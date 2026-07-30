@@ -18,7 +18,7 @@ import {
 import { spawnFlameParticle, spawnDustParticle, updateFlameParticles } from "./particles.js";
 import { chargeParticleSpeedMultiplier, releaseChargedShot, checkOrbClashes, createExplosion } from "./attacks.js";
 import { damageBoss, damagePlayer, orbDamageFromSize, spawnBossHitEffect } from "./combat.js";
-import { updateBoss, updateBossDeathPieces } from "./boss-ai.js";
+import { updateBoss, updateBossDeathPieces } from "./boss.js";
 
 // =================================================
 // ACTIVE OBJECTS (orbs / hit rings / sparks / explosions)
