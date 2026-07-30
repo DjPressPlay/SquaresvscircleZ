@@ -51,6 +51,17 @@ export const player = {
     hitStreak: 0,
     lastHitTime: 0,
     knockbackVX: 0,
+
+    // click-cycle strike pose (P1-P3 on ground, K1-K3 in air).
+    // each cycle remembers its own position independently and
+    // resumes there next time that state is clicked into.
+    groundStrikeIndex: 0, // 0,1,2 -> P1,P2,P3 - which one plays NEXT
+    airStrikeIndex: 0, // 0,1,2 -> K1,K2,K3 - which one plays NEXT
+
+    // currently-displayed pose, if any: null | "ground" | "air"
+    strikePoseType: null,
+    strikePoseFrame: 0, // which index (0-2) is currently showing
+    strikePoseUntil: 0, // performance.now() timestamp when it reverts
 };
 
 // click melee/teleport strike only works within this radius of the player
