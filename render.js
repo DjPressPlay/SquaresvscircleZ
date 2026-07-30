@@ -6,7 +6,15 @@ import { canvas, ctx } from "./dom.js";
 import { world, player, bosses, camera, activeObjects, screenShake } from "./state.js";
 import { clamp } from "./math.js";
 import { drawFlameParticles } from "./particles.js";
-import { BACKGROUND_URL, PLAYER_IDLE_URL, PLAYER_FLY_URL, PLAYER_SPRITE_SCALE, PLAYER_SPRITE_Y_OFFSET } from "./constants.js";
+import {
+    BACKGROUND_URL,
+    PLAYER_IDLE_URL,
+    PLAYER_FLY_URL,
+    PLAYER_SPRITE_SCALE,
+    PLAYER_SPRITE_Y_OFFSET,
+    PLAYER_PUNCH_URLS,
+    PLAYER_KICK_URLS,
+} from "./constants.js";
 import { SHAKE_DURATION_FRAMES } from "./constants.js";
 
 // =================================================
@@ -32,8 +40,21 @@ const playerSprites = {
     fly: { img: new Image(), loaded: false, src: PLAYER_FLY_URL },
 };
 
+// punch (ground click cycle P1-P3) and kick (air click cycle
+// K1-K3) poses, each as their own 3-entry array
+const punchSprites = PLAYER_PUNCH_URLS.map((src) => ({ img: new Image(), loaded: false, src }));
+const kickSprites = PLAYER_KICK_URLS.map((src) => ({ img: new Image(), loaded: false, src }));
+
 for (const key in playerSprites) {
     const sprite = playerSprites[key];
+    sprite.img.crossOrigin = "anonymous";
+    sprite.img.onload = () => {
+        sprite.loaded = true;
+    };
+    sprite.img.src = sprite.src;
+}
+
+for (const sprite of [...punchSprites, ...kickSprites]) {
     sprite.img.crossOrigin = "anonymous";
     sprite.img.onload = () => {
         sprite.loaded = true;
@@ -328,6 +349,17 @@ function drawPlayerSmear() {
     ctx.restore();
 }
 
+function getActivePlayerSprite() {
+    // an active, not-yet-expired click-cycle pose takes priority
+    // over the normal idle/fly sprite
+    if (player.strikePoseType && performance.now() < player.strikePoseUntil) {
+        const poseSet = player.strikePoseType === "ground" ? punchSprites : kickSprites;
+        return poseSet[player.strikePoseFrame];
+    }
+
+    return player.flying ? playerSprites.fly : playerSprites.idle;
+}
+
 function drawPlayer() {
     ctx.save();
 
@@ -340,7 +372,7 @@ function drawPlayer() {
         ctx.shadowColor = "orange";
     }
 
-    const sprite = player.flying ? playerSprites.fly : playerSprites.idle;
+    const sprite = getActivePlayerSprite();
 
     if (sprite.loaded) {
         const drawW = player.width * PLAYER_SPRITE_SCALE;
