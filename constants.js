@@ -1,86 +1,311 @@
 // =================================================
-// TUNABLE CONSTANTS
-// Change gameplay feel from here without touching logic files.
+// UPDATE - THE PER-FRAME SIMULATION STEP
 // =================================================
 
-// ---- dash ----
-export const DASH_DISTANCE = 200;
-export const DASH_COOLDOWN_MS = 300;
+import { canvas } from "./dom.js";
+import { world, player, bosses, camera, keys, mouse, activeObjects, screenShake } from "./state.js";
+import { CAMERA_DEADZONE, BOSS_HIT_RADIUS, PLAYER_FACING_TIE_THRESHOLD } from "./constants.js";
+import {
+    CHARGE_DRAIN_PER_FRAME,
+    POWER_REGEN_PER_FRAME,
+    POWER_BOOST_DRAIN_PER_FRAME,
+    FLY_EASE,
+    FLY_MAX_SPEED,
+    FLY_BOOST_EASE,
+    FLY_BOOST_MAX_SPEED,
+    KNOCKBACK_DECAY,
+} from "./constants.js";
+import { spawnFlameParticle, spawnDustParticle, updateFlameParticles } from "./particles.js";
+import { chargeParticleSpeedMultiplier, releaseChargedShot, checkOrbClashes, createExplosion } from "./attacks.js";
+import { damageBoss, damagePlayer, orbDamageFromSize, spawnBossHitEffect } from "./combat.js";
+import { updateBoss, updateBossDeathPieces } from "./boss.js";
 
-// ---- boss movement / attacks ----
-export const BOSS_WALK_SPEED = 4.5;
+// =================================================
+// ACTIVE OBJECTS (orbs / hit rings / sparks / explosions)
+// =================================================
 
-export const BOSS_MELEE_RANGE = 140;
-export const BOSS_MELEE_ANTICIPATE_FRAMES = 22;
-export const BOSS_MELEE_LUNGE_FRAMES = 12;
-export const BOSS_MELEE_HOLD_FRAMES = 6;
-export const BOSS_MELEE_RETURN_FRAMES = 26;
-export const BOSS_MELEE_DAMAGE = 26;
+function updateActiveObjects() {
+    checkOrbClashes();
 
-export const PLAYER_MELEE_DAMAGE = 22;
-export const PLAYER_MELEE_HIT_RADIUS = 70;
+    for (let i = activeObjects.length - 1; i >= 0; i--) {
+        const obj = activeObjects[i];
 
-export const BOSS_CHARGE_WINDUP_FRAMES = 42;
-export const BOSS_CHARGE_DASH_FRAMES = 16;
-export const BOSS_CHARGE_SETTLE_FRAMES = 24;
-export const BOSS_CHARGE_DISTANCE = 260;
-export const BOSS_CHARGE_DAMAGE = 22;
+        // ---- orb ----
+        if (obj.type === "orb") {
+            if (obj.clashed) {
+                activeObjects.splice(i, 1);
+                continue;
+            }
 
-export const BOSS_FIRE_INTERVAL = 55;
+            obj.x += obj.dx * obj.speed;
+            obj.y += obj.dy * obj.speed;
 
-export const BOSS_HIT_RADIUS = 50;
+            const distance = Math.sqrt((obj.targetX - obj.x) ** 2 + (obj.targetY - obj.y) ** 2);
 
-// ---- charge blast (SPACE) ----
-export const CHARGE_DRAIN_PER_FRAME = 0.004;
+            if (distance <= obj.speed) {
+                createExplosion(obj.targetX, obj.targetY, obj.chargeLevel);
 
-// ---- power regen (S) ----
-export const POWER_REGEN_PER_FRAME = 0.008;
+                // player shots hurt any boss they land on, boss
+                // shots hurt the player (damage is driven directly
+                // by the orb's actual size)
+                if (obj.owner === "player") {
+                    for (const b of bosses) {
+                        if (!b.alive) continue;
 
-// ---- fly (Q) / boost (Q + S) ----
-export const FLY_EASE = 0.045;
-export const FLY_MAX_SPEED = 6;
+                        const bcx = b.x + b.width / 2;
+                        const bcy = b.y + b.height / 2;
+                        const d = Math.sqrt((bcx - obj.targetX) ** 2 + (bcy - obj.targetY) ** 2);
 
-export const FLY_BOOST_EASE = 0.09;
-export const FLY_BOOST_MAX_SPEED = 13;
+                        if (d <= BOSS_HIT_RADIUS + obj.chargeLevel * 30) {
+                            damageBoss(b, orbDamageFromSize(obj.size, "player"), obj.targetX);
+                            spawnBossHitEffect(obj.targetX, obj.targetY, "#ffffff");
+                        }
+                    }
+                }
 
-export const POWER_BOOST_DRAIN_PER_FRAME = 0.006;
+                if (obj.owner === "boss") {
+                    const pcx = player.x + player.width / 2;
+                    const pcy = player.y + player.height / 2;
+                    const d = Math.sqrt((pcx - obj.targetX) ** 2 + (pcy - obj.targetY) ** 2);
 
-// ---- hit feedback (knockback + shake) ----
-export const COMBO_HIT_THRESHOLD = 4;
-export const COMBO_HIT_WINDOW_MS = 1200;
-export const HIGH_DAMAGE_THRESHOLD = 20;
+                    if (d <= 35 + obj.chargeLevel * 30) {
+                        damagePlayer(orbDamageFromSize(obj.size, "boss"), obj.x);
+                        spawnBossHitEffect(obj.targetX, obj.targetY, "#ffb347");
+                    }
+                }
 
-export const KNOCKBACK_FORCE = 30;
-export const KNOCKBACK_DECAY = 0.945;
+                activeObjects.splice(i, 1);
+            }
+        }
 
-export const BOSS_KNOCKBACK_FORCE = 30;
-export const BOSS_HIGH_DAMAGE_THRESHOLD = 20;
+        // ---- boss hit ring ----
+        if (obj.type === "bossHit") {
+            obj.radius += 6;
+            obj.life -= 0.09;
 
-export const SHAKE_DURATION_FRAMES = 18;
-export const SHAKE_MAGNITUDE = 14;
+            if (obj.life <= 0) activeObjects.splice(i, 1);
+        }
 
-// ---- boss death / respawn ----
-export const BOSS_RESPAWN_DELAY = 900;
-export const BOSS_DEATH_PIECE_FADE_RATE = 1 / 150;
+        // ---- boss hit spark ----
+        if (obj.type === "bossHitSpark") {
+            obj.x += obj.dx;
+            obj.y += obj.dy;
 
-// ---- camera ----
-export const CAMERA_DEADZONE = 250;
+            obj.dx *= 0.9;
+            obj.dy *= 0.9;
 
-// ---- assets ----
-export const LOGO_URL = "https://assets.skool.com/f/0f7f15bc8d494ed0b4bfb968b9a216e4/541fffc1cea14960993a5a8e0658ab60598d9b6c653e411abc475e6338312e3f";
-export const BACKGROUND_URL = "https://assets.skool.com/f/0f7f15bc8d494ed0b4bfb968b9a216e4/a66063279a524ad8af777aeece2c3241abd6bbc7a4b84671b827ae91be4ce8d7.png";
+            obj.life -= 0.07;
 
-// player sprites - static, one image per state
-export const PLAYER_IDLE_URL = "assets/player/player-idle.png";
-export const PLAYER_FLY_URL = "assets/player/player-fly.png";
+            if (obj.life <= 0) activeObjects.splice(i, 1);
+        }
 
-// visual size multiplier for the player sprite - the hitbox
-// (player.width/height in state.js) stays the same so dash
-// distance, melee range, etc. don't shift; only the drawn
-// image gets bigger, anchored to the bottom-center of the hitbox
-export const PLAYER_SPRITE_SCALE = 4;
+        // ---- explosion ----
+        if (obj.type === "explosion") {
+            obj.radius += obj.growth;
+            obj.life -= 0.05;
 
-// if the two bosses are within this many px of equally close,
-// treat it as a tie and face whichever side the mouse is on
-// instead of arbitrarily picking one
-export const PLAYER_FACING_TIE_THRESHOLD = 40;
+            if (obj.life <= 0) activeObjects.splice(i, 1);
+        }
+    }
+}
+
+// =================================================
+// PLAYER FACING (visual only - mirrors the sprite)
+// Faces whichever living boss is closer. If both are roughly
+// equally close, or neither is alive, faces whichever side the
+// mouse is on instead. Never affects aiming or hitboxes.
+// =================================================
+
+function updatePlayerFacing() {
+    const playerCenterX = player.x + player.width / 2;
+
+    const living = bosses.filter((b) => b.alive);
+
+    if (living.length === 0) {
+        facePlayerTowardMouse(playerCenterX);
+        return;
+    }
+
+    if (living.length === 1) {
+        const bossCenterX = living[0].x + living[0].width / 2;
+        player.facing = bossCenterX >= playerCenterX ? 1 : -1;
+        return;
+    }
+
+    // two living bosses - compare distances
+    const dists = living.map((b) => Math.abs(b.x + b.width / 2 - playerCenterX));
+
+    if (Math.abs(dists[0] - dists[1]) <= PLAYER_FACING_TIE_THRESHOLD) {
+        facePlayerTowardMouse(playerCenterX);
+        return;
+    }
+
+    const closer = dists[0] < dists[1] ? living[0] : living[1];
+    const closerCenterX = closer.x + closer.width / 2;
+    player.facing = closerCenterX >= playerCenterX ? 1 : -1;
+}
+
+function facePlayerTowardMouse(playerCenterX) {
+    const mouseWorldX = mouse.x + camera.x;
+    player.facing = mouseWorldX >= playerCenterX ? 1 : -1;
+}
+
+// =================================================
+// MAIN UPDATE
+// =================================================
+
+export function update() {
+    // ---- SPACE charge blast (hold to charge, release to fire) ----
+    if (keys[" "] && player.power > 0) {
+        player.charging = true;
+        player.chargeFrames++;
+
+        const drainAmt = Math.min(CHARGE_DRAIN_PER_FRAME, player.power);
+        player.power -= drainAmt;
+        player.chargeDrained += drainAmt;
+
+        if (player.power <= 0) {
+            // whole bar spent mid-hold - this IS the super attack,
+            // unleash it immediately rather than waiting on keyup
+            releaseChargedShot();
+        }
+    } else {
+        player.charging = false;
+    }
+
+    if (player.charging && player.power > 0) {
+        spawnFlameParticle("orange", undefined, chargeParticleSpeedMultiplier());
+        spawnFlameParticle("orange", undefined, chargeParticleSpeedMultiplier());
+    }
+
+    // ---- power charge (hold S) / boost drain (hold S while flying) ----
+    player.regening = false;
+    player.boosting = false;
+
+    // boosting only actually engages while there's power left to
+    // drain - at 0 power, Q+S falls back to a plain (non-boosted)
+    // hover with no drain and no particles
+    const wantsBoost = keys["q"] && keys["s"];
+    const isBoosting = wantsBoost && player.power > 0;
+
+    if (isBoosting) {
+        player.boosting = true;
+
+        player.power -= POWER_BOOST_DRAIN_PER_FRAME;
+        if (player.power < 0) player.power = 0;
+
+        spawnFlameParticle("orange", undefined, chargeParticleSpeedMultiplier());
+        spawnFlameParticle("orange", undefined, chargeParticleSpeedMultiplier());
+    } else if (keys["s"] && !wantsBoost) {
+        player.regening = true;
+
+        player.power += POWER_REGEN_PER_FRAME;
+        if (player.power > player.maxPower) player.power = player.maxPower;
+
+        if (player.power > 0) {
+            spawnFlameParticle("orange", undefined, chargeParticleSpeedMultiplier());
+            spawnFlameParticle("orange", undefined, chargeParticleSpeedMultiplier());
+        }
+    }
+
+    updateFlameParticles();
+
+    // ---- fly (hold Q) ----
+    if (keys["q"]) {
+        player.flying = true;
+
+        const targetX = mouse.x + camera.x - player.width / 2;
+        const targetY = mouse.y - player.height / 2;
+
+        // gentle ease toward the cursor, plus a max-speed cap so a
+        // big cursor jump drifts across the distance instead of
+        // snapping most of the way there in one frame. Holding S
+        // while flying boosts both the ease and speed cap, but only
+        // while there's power left to fund it.
+        const ease = player.boosting ? FLY_BOOST_EASE : FLY_EASE;
+        const maxSpeed = player.boosting ? FLY_BOOST_MAX_SPEED : FLY_MAX_SPEED;
+
+        let moveX = (targetX - player.x) * ease;
+        let moveY = (targetY - player.y) * ease;
+
+        const moveDist = Math.sqrt(moveX * moveX + moveY * moveY);
+
+        if (moveDist > maxSpeed) {
+            const scale = maxSpeed / moveDist;
+            moveX *= scale;
+            moveY *= scale;
+        }
+
+        player.x += moveX;
+        player.y += moveY;
+
+        if (player.y + player.height > world.groundY) {
+            player.y = world.groundY - player.height;
+        }
+
+        player.velocityY = 0;
+        player.grounded = false;
+    } else {
+        player.flying = false;
+
+        // gravity
+        player.velocityY += player.gravity;
+        player.y += player.velocityY;
+
+        // ground collision
+        if (player.y + player.height >= world.groundY) {
+            player.y = world.groundY - player.height;
+            player.velocityY = 0;
+            player.grounded = true;
+        }
+    }
+
+    // ---- knockback (from combo/damage-triggered hit feedback) ----
+    if (player.knockbackVX) {
+        player.x += player.knockbackVX;
+        player.knockbackVX *= KNOCKBACK_DECAY;
+
+        if (Math.abs(player.knockbackVX) < 0.4) {
+            player.knockbackVX = 0;
+        }
+
+        if (Math.abs(player.knockbackVX) > 1) {
+            spawnDustParticle(player);
+        }
+    }
+
+    // ---- world limits ----
+    if (player.x < 0) player.x = 0;
+    if (player.x + player.width > world.width) player.x = world.width - player.width;
+
+    // ---- camera (dead-zone follow) ----
+    // only scrolls once the player nears the left/right edge of
+    // the screen, instead of locking the player to exact center
+    const screenX = player.x - camera.x;
+
+    if (screenX > canvas.width - CAMERA_DEADZONE) {
+        camera.x = player.x - (canvas.width - CAMERA_DEADZONE);
+    } else if (screenX < CAMERA_DEADZONE) {
+        camera.x = player.x - CAMERA_DEADZONE;
+    }
+
+    if (camera.x < 0) camera.x = 0;
+    if (camera.x > world.width - canvas.width) camera.x = world.width - canvas.width;
+
+    // ---- smear fade ----
+    if (player.smear > 0) player.smear -= 0.08;
+
+    // ---- screen shake countdown ----
+    if (screenShake.time > 0) screenShake.time--;
+
+    updateActiveObjects();
+
+    // both bosses run their own independent step stack - fully
+    // simultaneous, neither waits for the other
+    for (const b of bosses) {
+        updateBoss(b);
+        updateBossDeathPieces(b);
+    }
+
+    updatePlayerFacing();
+}
