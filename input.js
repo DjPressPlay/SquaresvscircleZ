@@ -5,7 +5,7 @@
 
 import { canvas } from "./dom.js";
 import { player, bosses, camera, dash, keys, mouse, game, strikeRange } from "./state.js";
-import { PLAYER_MELEE_DAMAGE, PLAYER_MELEE_HIT_RADIUS } from "./constants.js";
+import { PLAYER_MELEE_DAMAGE, PLAYER_MELEE_HIT_RADIUS, STRIKE_POSE_DURATION_MS } from "./constants.js";
 import { spawnFlameParticle } from "./particles.js";
 import { lerp } from "./math.js";
 import { meleeAtkSwipe, teleportStrikeTo, releaseChargedShot } from "./attacks.js";
@@ -39,6 +39,7 @@ export function initInput() {
         if (distance <= strikeRange) {
             meleeAtkSwipe(e.clientX, e.clientY);
             teleportStrikeTo(clickX, clickY);
+            advanceStrikePose();
 
             // melee hit check - if the strike point lands close
             // enough to a boss, it counts as a landed melee hit.
@@ -104,6 +105,28 @@ export function initInput() {
 
         // fire is handled by the charge/release system (see update.js)
     });
+}
+
+// =================================================
+// CLICK CYCLE - PUNCH (ground) / KICK (air) POSE
+// Each of the two cycles remembers its own position and
+// resumes there next time that state is clicked into. Every
+// valid strike click (within strikeRange) advances one step,
+// hit or miss.
+// =================================================
+
+function advanceStrikePose() {
+    if (player.grounded) {
+        player.strikePoseType = "ground";
+        player.strikePoseFrame = player.groundStrikeIndex;
+        player.groundStrikeIndex = (player.groundStrikeIndex + 1) % 3;
+    } else {
+        player.strikePoseType = "air";
+        player.strikePoseFrame = player.airStrikeIndex;
+        player.airStrikeIndex = (player.airStrikeIndex + 1) % 3;
+    }
+
+    player.strikePoseUntil = performance.now() + STRIKE_POSE_DURATION_MS;
 }
 
 function doDash(direction) {
