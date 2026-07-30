@@ -6,7 +6,7 @@ import { canvas, ctx } from "./dom.js";
 import { world, player, bosses, camera, activeObjects, screenShake } from "./state.js";
 import { clamp } from "./math.js";
 import { drawFlameParticles } from "./particles.js";
-import { BACKGROUND_URL } from "./constants.js";
+import { BACKGROUND_URL, PLAYER_IDLE_URL, PLAYER_FLY_URL } from "./constants.js";
 import { SHAKE_DURATION_FRAMES } from "./constants.js";
 
 // =================================================
@@ -22,6 +22,24 @@ bgImage.onload = () => {
 };
 
 bgImage.src = BACKGROUND_URL;
+
+// =================================================
+// PLAYER SPRITES (static - one image per state)
+// =================================================
+
+const playerSprites = {
+    idle: { img: new Image(), loaded: false, src: PLAYER_IDLE_URL },
+    fly: { img: new Image(), loaded: false, src: PLAYER_FLY_URL },
+};
+
+for (const key in playerSprites) {
+    const sprite = playerSprites[key];
+    sprite.img.crossOrigin = "anonymous";
+    sprite.img.onload = () => {
+        sprite.loaded = true;
+    };
+    sprite.img.src = sprite.src;
+}
 
 function drawBackground() {
     if (!bgImageLoaded) return;
@@ -322,8 +340,15 @@ function drawPlayer() {
         ctx.shadowColor = "orange";
     }
 
-    ctx.fillStyle = "red";
-    ctx.fillRect(player.x, player.y, player.width, player.height);
+    const sprite = player.flying ? playerSprites.fly : playerSprites.idle;
+
+    if (sprite.loaded) {
+        ctx.drawImage(sprite.img, player.x, player.y, player.width, player.height);
+    } else {
+        // fallback while the sprite is still loading (or missing)
+        ctx.fillStyle = "red";
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
 
     ctx.restore();
 }
