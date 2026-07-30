@@ -37,7 +37,7 @@ export const CHARGE_DRAIN_PER_FRAME = 0.004;
 export const POWER_REGEN_PER_FRAME = 0.008;
 
 // ---- fly (Q) / boost (Q + S) ----
-export const FLY_EASE = 0.045;
+export const FLY_EASE = 0.085;
 export const FLY_MAX_SPEED = 6;
 
 export const FLY_BOOST_EASE = 0.09;
