@@ -78,4 +78,4 @@ export const PLAYER_FLY_URL = "assets/player/player-fly.png";
 // (player.width/height in state.js) stays the same so dash
 // distance, melee range, etc. don't shift; only the drawn
 // image gets bigger, anchored to the bottom-center of the hitbox
-export const PLAYER_SPRITE_SCALE = 2;
+export const PLAYER_SPRITE_SCALE = 4;
