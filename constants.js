@@ -80,6 +80,11 @@ export const PLAYER_FLY_URL = "assets/player/player-fly.png";
 // image gets bigger, anchored to the bottom-center of the hitbox
 export const PLAYER_SPRITE_SCALE = 4;
 
+// if the sprite's transparent padding leaves a gap above the
+// ground, nudge the drawn image down by this many px. Doesn't
+// touch the hitbox/collision - purely visual.
+export const PLAYER_SPRITE_Y_OFFSET = 8;
+
 // if the two bosses are within this many px of equally close,
 // treat it as a tie and face whichever side the mouse is on
 // instead of arbitrarily picking one
