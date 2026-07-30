@@ -14,7 +14,7 @@ import {
     keys,
     game,
 } from "./state.js";
-import { spawnBothBosses } from "./boss-ai.js";
+import { spawnBothBosses } from "./boss.js";
 import { setOnPlayerDeath } from "./combat.js";
 
 export function startGame() {
