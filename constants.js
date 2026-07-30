@@ -73,3 +73,9 @@ export const BACKGROUND_URL = "https://assets.skool.com/f/0f7f15bc8d494ed0b4bfb9
 // player sprites - static, one image per state
 export const PLAYER_IDLE_URL = "assets/player/player-idle.png";
 export const PLAYER_FLY_URL = "assets/player/player-fly.png";
+
+// visual size multiplier for the player sprite - the hitbox
+// (player.width/height in state.js) stays the same so dash
+// distance, melee range, etc. don't shift; only the drawn
+// image gets bigger, anchored to the bottom-center of the hitbox
+export const PLAYER_SPRITE_SCALE = 2;
