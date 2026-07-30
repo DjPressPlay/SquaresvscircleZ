@@ -15,6 +15,7 @@ import {
     PLAYER_SPRITE_Y_OFFSET,
     PLAYER_PUNCH_URLS,
     PLAYER_KICK_URLS,
+    PLAYER_KNOCKBACK_TILT_DEGREES,
 } from "./constants.js";
 import { SHAKE_DURATION_FRAMES } from "./constants.js";
 
@@ -365,6 +366,14 @@ function getActivePlayerSprite() {
         return player.dashPoseType === "away" ? playerSprites.dashAway : playerSprites.fly;
     }
 
+    // while being knocked back from a hit, reuse the fly-away
+    // pose - getting shoved back reads the same as dashing away.
+    // independent of the smear check above; no priority between
+    // them, whichever condition is true fires
+    if (player.knockbackVX !== 0) {
+        return playerSprites.dashAway;
+    }
+
     return player.flying ? playerSprites.fly : playerSprites.idle;
 }
 
@@ -390,14 +399,32 @@ function drawPlayer() {
         // grows without moving the character's feet or changing
         // any collision math elsewhere
         const centerX = player.x + player.width / 2;
-        const drawY = player.y + player.height - drawH + PLAYER_SPRITE_Y_OFFSET;
+        const footY = player.y + player.height;
+        const drawY = -drawH + PLAYER_SPRITE_Y_OFFSET; // relative to footY
 
         // mirror horizontally around the sprite's own center based
         // on player.facing (1 = right/unflipped, -1 = left/mirrored).
         // assumes the source art faces right by default - flip the
         // sign here if it turns out to face left instead.
-        ctx.translate(centerX, 0);
+        // origin is pinned to the feet (not the top of the hitbox)
+        // so the knockback tilt below pivots from the ground, not
+        // from somewhere above the character's head.
+        ctx.translate(centerX, footY);
         ctx.scale(player.facing, 1);
+
+        // knockback tilt - snaps to a fixed angle for as long as
+        // knockbackVX is nonzero, snaps back to 0 the instant it
+        // clears (no easing in either direction). Leans in the
+        // direction of the knockback push, like a punch impact.
+        // multiplying by player.facing cancels out the mirror
+        // above so the lean direction is correct in world space
+        // regardless of which way the player is currently facing.
+        if (player.knockbackVX !== 0) {
+            const tiltRadians = (PLAYER_KNOCKBACK_TILT_DEGREES * Math.PI) / 180;
+            const tiltSign = Math.sign(player.knockbackVX);
+            ctx.rotate(tiltSign * player.facing * tiltRadians);
+        }
+
         ctx.drawImage(sprite.img, -drawW / 2, drawY, drawW, drawH);
     } else {
         // fallback while the sprite is still loading (or missing)
