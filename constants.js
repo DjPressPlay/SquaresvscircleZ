@@ -1,81 +1,408 @@
 // =================================================
-// TUNABLE CONSTANTS
-// Change gameplay feel from here without touching logic files.
+// RENDER - EVERYTHING DRAWN TO THE CANVAS EACH FRAME
 // =================================================
 
-// ---- dash ----
-export const DASH_DISTANCE = 200;
-export const DASH_COOLDOWN_MS = 300;
+import { canvas, ctx } from "./dom.js";
+import { world, player, bosses, camera, activeObjects, screenShake } from "./state.js";
+import { clamp } from "./math.js";
+import { drawFlameParticles } from "./particles.js";
+import { BACKGROUND_URL, PLAYER_IDLE_URL, PLAYER_FLY_URL, PLAYER_SPRITE_SCALE } from "./constants.js";
+import { SHAKE_DURATION_FRAMES } from "./constants.js";
 
-// ---- boss movement / attacks ----
-export const BOSS_WALK_SPEED = 4.5;
+// =================================================
+// BACKGROUND IMAGE (drawn behind the ground, slow parallax)
+// =================================================
 
-export const BOSS_MELEE_RANGE = 140;
-export const BOSS_MELEE_ANTICIPATE_FRAMES = 22;
-export const BOSS_MELEE_LUNGE_FRAMES = 12;
-export const BOSS_MELEE_HOLD_FRAMES = 6;
-export const BOSS_MELEE_RETURN_FRAMES = 26;
-export const BOSS_MELEE_DAMAGE = 26;
+const bgImage = new Image();
+bgImage.crossOrigin = "anonymous";
+let bgImageLoaded = false;
 
-export const PLAYER_MELEE_DAMAGE = 22;
-export const PLAYER_MELEE_HIT_RADIUS = 70;
+bgImage.onload = () => {
+    bgImageLoaded = true;
+};
 
-export const BOSS_CHARGE_WINDUP_FRAMES = 42;
-export const BOSS_CHARGE_DASH_FRAMES = 16;
-export const BOSS_CHARGE_SETTLE_FRAMES = 24;
-export const BOSS_CHARGE_DISTANCE = 260;
-export const BOSS_CHARGE_DAMAGE = 22;
+bgImage.src = BACKGROUND_URL;
 
-export const BOSS_FIRE_INTERVAL = 55;
+// =================================================
+// PLAYER SPRITES (static - one image per state)
+// =================================================
 
-export const BOSS_HIT_RADIUS = 50;
+const playerSprites = {
+    idle: { img: new Image(), loaded: false, src: PLAYER_IDLE_URL },
+    fly: { img: new Image(), loaded: false, src: PLAYER_FLY_URL },
+};
 
-// ---- charge blast (SPACE) ----
-export const CHARGE_DRAIN_PER_FRAME = 0.004;
+for (const key in playerSprites) {
+    const sprite = playerSprites[key];
+    sprite.img.crossOrigin = "anonymous";
+    sprite.img.onload = () => {
+        sprite.loaded = true;
+    };
+    sprite.img.src = sprite.src;
+}
 
-// ---- power regen (S) ----
-export const POWER_REGEN_PER_FRAME = 0.008;
+function drawBackground() {
+    if (!bgImageLoaded) return;
 
-// ---- fly (Q) / boost (Q + S) ----
-export const FLY_EASE = 0.045;
-export const FLY_MAX_SPEED = 6;
+    const imgH = world.groundY;
+    const scale = imgH / bgImage.height;
+    const imgW = bgImage.width * scale;
 
-export const FLY_BOOST_EASE = 0.09;
-export const FLY_BOOST_MAX_SPEED = 13;
+    if (imgW <= 0) return;
 
-export const POWER_BOOST_DRAIN_PER_FRAME = 0.006;
+    const parallax = 0.35;
+    let offsetX = -((camera.x * parallax) % imgW);
+    if (offsetX > 0) offsetX -= imgW;
 
-// ---- hit feedback (knockback + shake) ----
-export const COMBO_HIT_THRESHOLD = 4;
-export const COMBO_HIT_WINDOW_MS = 1200;
-export const HIGH_DAMAGE_THRESHOLD = 20;
+    ctx.save();
+    for (let x = offsetX; x < canvas.width; x += imgW) {
+        ctx.drawImage(bgImage, x, 0, imgW, imgH);
+    }
+    ctx.restore();
+}
 
-export const KNOCKBACK_FORCE = 30;
-export const KNOCKBACK_DECAY = 0.945;
+// =================================================
+// GROUND
+// =================================================
 
-export const BOSS_KNOCKBACK_FORCE = 30;
-export const BOSS_HIGH_DAMAGE_THRESHOLD = 20;
+function drawGround() {
+    const groundH = canvas.height - world.groundY;
+    ctx.fillStyle = "#7a5230";
+    ctx.fillRect(0, world.groundY, world.width, groundH);
+}
 
-export const SHAKE_DURATION_FRAMES = 18;
-export const SHAKE_MAGNITUDE = 14;
+// =================================================
+// BOSS
+// Snowman stack of 3 circles, bottom to top, with squash/stretch
+// + per-circle wobble applied so it reads as a soft, living body.
+// =================================================
 
-// ---- boss death / respawn ----
-export const BOSS_RESPAWN_DELAY = 900;
-export const BOSS_DEATH_PIECE_FADE_RATE = 1 / 150;
+function drawBoss(boss) {
+    if (!boss.alive) return;
 
-// ---- camera ----
-export const CAMERA_DEADZONE = 250;
+    const centerX = boss.x + boss.width / 2;
+    const baseY = boss.y + boss.height - boss.walkBob;
 
-// ---- assets ----
-export const LOGO_URL = "https://assets.skool.com/f/0f7f15bc8d494ed0b4bfb968b9a216e4/541fffc1cea14960993a5a8e0658ab60598d9b6c653e411abc475e6338312e3f";
-export const BACKGROUND_URL = "https://assets.skool.com/f/0f7f15bc8d494ed0b4bfb968b9a216e4/a66063279a524ad8af777aeece2c3241abd6bbc7a4b84671b827ae91be4ce8d7.png";
+    const color = "#dfefff";
+    let glowColor = "#8fd8ff";
 
-// player sprites - static, one image per state
-export const PLAYER_IDLE_URL = "assets/player/player-idle.png";
-export const PLAYER_FLY_URL = "assets/player/player-fly.png";
+    const currentStep = boss.stepStack[boss.stepIndex];
 
-// visual size multiplier for the player sprite - the hitbox
-// (player.width/height in state.js) stays the same so dash
-// distance, melee range, etc. don't shift; only the drawn
-// image gets bigger, anchored to the bottom-center of the hitbox
-export const PLAYER_SPRITE_SCALE = 4;
+    if (currentStep === "fire") glowColor = "#ffb347";
+    if (currentStep === "melee") glowColor = "#ff5c5c";
+    if (currentStep === "charge") glowColor = "#c37bff";
+
+    // trailing smear during the charge dash - motion blur feel
+    if (currentStep === "charge" && boss.chargeState === "dash") {
+        ctx.save();
+        ctx.filter = "blur(12px)";
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = glowColor;
+        ctx.beginPath();
+        ctx.ellipse(centerX - boss.facing * 60, baseY - 60, 60, 40, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    let stackY = baseY;
+
+    // big soft outer halo behind the whole snowman so the glow
+    // reads clearly from a distance
+    ctx.save();
+    ctx.filter = "blur(30px)";
+    ctx.globalAlpha = 0.55 + boss.telegraph * 0.25;
+    ctx.fillStyle = glowColor;
+    ctx.beginPath();
+    ctx.ellipse(centerX, baseY - 70, 95 + boss.telegraph * 40, 105 + boss.telegraph * 40, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    for (let i = 0; i < boss.radii.length; i++) {
+        const r = boss.radii[i];
+        const wobbleX = boss.circleWobble[i];
+
+        const cx = centerX + wobbleX;
+        const cy = stackY - r;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(boss.squishX, boss.squishY);
+
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+
+        ctx.fillStyle = color;
+
+        ctx.shadowBlur = 40 + boss.telegraph * 55;
+        ctx.shadowColor = glowColor;
+
+        ctx.fill();
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = glowColor;
+        ctx.stroke();
+
+        ctx.restore();
+
+        stackY = cy - r * 0.35;
+    }
+
+    // simple eyes on the top circle so it reads as a face/direction
+    const headR = boss.radii[2];
+    const headCx = centerX + boss.circleWobble[2];
+    const headCy = stackY + headR - headR * 0.35;
+
+    ctx.save();
+    ctx.fillStyle = "#222";
+    ctx.beginPath();
+    ctx.arc(headCx + boss.facing * 5, headCy - 2, 3, 0, Math.PI * 2);
+    ctx.arc(headCx - boss.facing * 3, headCy - 2, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // health bar above the boss
+    const barW = 90,
+        barH = 8;
+    const barX = centerX - barW / 2;
+    const barY = boss.y - 30;
+
+    ctx.save();
+    ctx.fillStyle = "#222";
+    ctx.fillRect(barX, barY, barW, barH);
+
+    const pct = Math.max(0, boss.health / boss.maxHealth);
+    ctx.fillStyle = "#ff4d4d";
+    ctx.fillRect(barX, barY, barW * pct, barH);
+
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barW, barH);
+    ctx.restore();
+}
+
+function drawBossDeathPieces(boss) {
+    if (!boss.dying) return;
+
+    for (const p of boss.deathPieces) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.life);
+
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
+
+        ctx.beginPath();
+        ctx.arc(0, 0, p.r, 0, Math.PI * 2);
+
+        ctx.fillStyle = "#dfefff";
+
+        ctx.shadowBlur = 35;
+        ctx.shadowColor = "#8fd8ff";
+
+        ctx.fill();
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#8fd8ff";
+        ctx.stroke();
+
+        // a little cracked-line detail so the piece doesn't read
+        // as a perfectly clean circle mid-tumble
+        ctx.beginPath();
+        ctx.moveTo(-p.r * 0.4, -p.r * 0.3);
+        ctx.lineTo(p.r * 0.2, p.r * 0.1);
+        ctx.lineTo(-p.r * 0.1, p.r * 0.5);
+        ctx.strokeStyle = "rgba(143,216,255,0.6)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.restore();
+    }
+}
+
+// =================================================
+// ACTIVE OBJECTS (orbs / explosions / hit rings / sparks)
+// =================================================
+
+function drawActiveObjects() {
+    for (const obj of activeObjects) {
+        if (obj.type === "orb") {
+            ctx.save();
+
+            // big charged shots get an actual blur, scaling with
+            // charge, plus a soft halo behind them
+            const isBigCharge = obj.chargeLevel > 0.4;
+
+            if (isBigCharge) {
+                const blurAmt = (obj.chargeLevel - 0.4) * 18;
+
+                ctx.filter = "blur(" + blurAmt.toFixed(1) + "px)";
+                ctx.globalAlpha = 0.35;
+                ctx.fillStyle = obj.owner === "boss" ? "#ffb347" : "#8fe9ff";
+
+                ctx.beginPath();
+                ctx.arc(obj.x, obj.y, obj.size * 1.7, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.globalAlpha = 1;
+                ctx.filter = "blur(" + (blurAmt * 0.4).toFixed(1) + "px)";
+            }
+
+            ctx.shadowBlur = obj.glow;
+            ctx.shadowColor = obj.owner === "boss" ? "#ff8a3d" : "cyan";
+
+            ctx.fillStyle =
+                obj.owner === "boss"
+                    ? obj.chargeLevel > 0.55
+                        ? "#fff2df"
+                        : "#ff8a3d"
+                    : obj.chargeLevel > 0.55
+                    ? "#eafcff"
+                    : "cyan";
+
+            ctx.beginPath();
+            ctx.arc(obj.x, obj.y, obj.size, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        if (obj.type === "bossHit") {
+            ctx.save();
+            ctx.globalAlpha = obj.life;
+
+            ctx.strokeStyle = obj.color;
+            ctx.lineWidth = 4;
+
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = obj.color;
+
+            ctx.beginPath();
+            ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        if (obj.type === "bossHitSpark") {
+            ctx.save();
+            ctx.globalAlpha = obj.life;
+
+            ctx.fillStyle = obj.color;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = obj.color;
+
+            ctx.beginPath();
+            ctx.arc(obj.x, obj.y, 4 * obj.life, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        if (obj.type === "explosion") {
+            ctx.save();
+            ctx.fillStyle = "orange";
+            ctx.globalAlpha = obj.life;
+
+            ctx.beginPath();
+            ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+    }
+}
+
+// =================================================
+// PLAYER
+// (charge glow uses ctx.shadowBlur since a plain CSS box-shadow
+// can't apply to canvas-drawn shapes)
+// =================================================
+
+function drawPlayerSmear() {
+    if (player.smear <= 0) return;
+
+    ctx.save();
+    ctx.filter = "blur(15px)";
+    ctx.globalAlpha = player.smear;
+    ctx.fillStyle = "red";
+    ctx.fillRect(player.x - player.dashDirection * 100, player.y, 150, player.height);
+    ctx.restore();
+}
+
+function drawPlayer() {
+    ctx.save();
+
+    if (player.charging) {
+        const chargePct = clamp(player.chargeDrained / player.maxPower, 0, 1);
+        ctx.shadowBlur = 25 + chargePct * 35;
+        ctx.shadowColor = "orange";
+    } else if (player.regening) {
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = "orange";
+    }
+
+    const sprite = player.flying ? playerSprites.fly : playerSprites.idle;
+
+    if (sprite.loaded) {
+        const drawW = player.width * PLAYER_SPRITE_SCALE;
+        const drawH = player.height * PLAYER_SPRITE_SCALE;
+
+        // anchor bottom-center to the hitbox, so the visual size
+        // grows without moving the character's feet or changing
+        // any collision math elsewhere
+        const drawX = player.x + player.width / 2 - drawW / 2;
+        const drawY = player.y + player.height - drawH;
+
+        ctx.drawImage(sprite.img, drawX, drawY, drawW, drawH);
+    } else {
+        // fallback while the sprite is still loading (or missing)
+        ctx.fillStyle = "red";
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
+
+    ctx.restore();
+}
+
+// =================================================
+// MAIN DRAW
+// =================================================
+
+export function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawBackground();
+
+    ctx.save();
+
+    // screen shake (combo-hit / big-hit / explosion feedback) -
+    // offsets the whole world render by a small decaying random amount
+    let shakeX = 0,
+        shakeY = 0;
+
+    if (screenShake.time > 0) {
+        const power = screenShake.magnitude * (screenShake.time / SHAKE_DURATION_FRAMES);
+        shakeX = (Math.random() - 0.5) * 2 * power;
+        shakeY = (Math.random() - 0.5) * 2 * power;
+    }
+
+    ctx.translate(-camera.x + shakeX, shakeY);
+
+    drawGround();
+
+    drawPlayerSmear();
+
+    // flame particles drawn BEHIND player so the body reads
+    // clearly against the glow
+    drawFlameParticles();
+
+    // bosses drawn before the player so the player reads on top
+    for (const b of bosses) {
+        drawBoss(b);
+        drawBossDeathPieces(b);
+    }
+
+    drawPlayer();
+
+    drawActiveObjects();
+
+    ctx.restore();
+}
