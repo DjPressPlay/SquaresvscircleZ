@@ -1,210 +1,81 @@
 // =================================================
-// COMBAT - DAMAGE / KNOCKBACK / SCREEN SHAKE / HIT FX
+// TUNABLE CONSTANTS
+// Change gameplay feel from here without touching logic files.
 // =================================================
 
-import { player, activeObjects, screenShake, stats, game } from "./state.js";
-import { hud } from "./dom.js";
-import {
-    COMBO_HIT_THRESHOLD,
-    COMBO_HIT_WINDOW_MS,
-    HIGH_DAMAGE_THRESHOLD,
-    KNOCKBACK_FORCE,
-    BOSS_KNOCKBACK_FORCE,
-    BOSS_HIGH_DAMAGE_THRESHOLD,
-    SHAKE_DURATION_FRAMES,
-    SHAKE_MAGNITUDE,
-} from "./constants.js";
+// ---- dash ----
+export const DASH_DISTANCE = 200;
+export const DASH_COOLDOWN_MS = 300;
 
-// callback wired in by game.js so combat.js doesn't need to
-// import the game-state-machine module directly (avoids a
-// circular import between combat.js and game.js)
-let onPlayerDeath = () => {};
-export function setOnPlayerDeath(fn) {
-    onPlayerDeath = fn;
-}
+// ---- boss movement / attacks ----
+export const BOSS_WALK_SPEED = 4.5;
 
-// =================================================
-// ORB DAMAGE FROM SIZE
-// Damage is derived directly from the orb's actual rendered
-// size instead of a parallel chargeLevel formula, so size and
-// damage can never drift apart.
-// =================================================
+export const BOSS_MELEE_RANGE = 140;
+export const BOSS_MELEE_ANTICIPATE_FRAMES = 22;
+export const BOSS_MELEE_LUNGE_FRAMES = 12;
+export const BOSS_MELEE_HOLD_FRAMES = 6;
+export const BOSS_MELEE_RETURN_FRAMES = 26;
+export const BOSS_MELEE_DAMAGE = 26;
 
-export function orbDamageFromSize(size, owner) {
-    if (owner === "player") {
-        // player orb: size 12 (charge 0) -> 102 (charge 1, full power drained)
-        // damage:      10                -> 150
-        return 10 + (size - 12) * (140 / 90);
-    } else {
-        // boss orb: size 14 (charge 0) -> 44 (charge 1)
-        // damage:    8                 -> 28
-        return 8 + (size - 14) * (20 / 30);
-    }
-}
+export const PLAYER_MELEE_DAMAGE = 22;
+export const PLAYER_MELEE_HIT_RADIUS = 70;
 
-// =================================================
-// SCREEN SHAKE
-// =================================================
+export const BOSS_CHARGE_WINDUP_FRAMES = 42;
+export const BOSS_CHARGE_DASH_FRAMES = 16;
+export const BOSS_CHARGE_SETTLE_FRAMES = 24;
+export const BOSS_CHARGE_DISTANCE = 260;
+export const BOSS_CHARGE_DAMAGE = 22;
 
-export function triggerScreenShake(magnitude = SHAKE_MAGNITUDE) {
-    // if a stronger shake is already mid-flight, don't let a
-    // weaker one cut it short - take whichever is bigger
-    if (screenShake.time <= 0 || magnitude >= screenShake.magnitude) {
-        screenShake.magnitude = magnitude;
-    }
-    screenShake.time = SHAKE_DURATION_FRAMES;
-}
+export const BOSS_FIRE_INTERVAL = 55;
 
-// =================================================
-// KNOCKBACK
-// =================================================
+export const BOSS_HIT_RADIUS = 50;
 
-export function triggerPlayerKnockback(sourceX) {
-    const playerCenterX = player.x + player.width / 2;
+// ---- charge blast (SPACE) ----
+export const CHARGE_DRAIN_PER_FRAME = 0.004;
 
-    const dir =
-        sourceX === undefined
-            ? Math.random() < 0.5
-                ? -1
-                : 1
-            : playerCenterX < sourceX
-            ? -1
-            : 1;
+// ---- power regen (S) ----
+export const POWER_REGEN_PER_FRAME = 0.008;
 
-    player.knockbackVX = dir * KNOCKBACK_FORCE;
+// ---- fly (Q) / boost (Q + S) ----
+export const FLY_EASE = 0.045;
+export const FLY_MAX_SPEED = 6;
 
-    if (!player.flying) {
-        player.velocityY = -11;
-        player.grounded = false;
-    }
+export const FLY_BOOST_EASE = 0.09;
+export const FLY_BOOST_MAX_SPEED = 13;
 
-    triggerScreenShake();
-}
+export const POWER_BOOST_DRAIN_PER_FRAME = 0.006;
 
-// mirror of triggerPlayerKnockback, but for a boss being
-// shoved back by a qualifying player hit
-export function triggerBossKnockback(boss, sourceX) {
-    const bossCenterX = boss.x + boss.width / 2;
+// ---- hit feedback (knockback + shake) ----
+export const COMBO_HIT_THRESHOLD = 4;
+export const COMBO_HIT_WINDOW_MS = 1200;
+export const HIGH_DAMAGE_THRESHOLD = 20;
 
-    const dir =
-        sourceX === undefined
-            ? Math.random() < 0.5
-                ? -1
-                : 1
-            : bossCenterX < sourceX
-            ? -1
-            : 1;
+export const KNOCKBACK_FORCE = 30;
+export const KNOCKBACK_DECAY = 0.945;
 
-    boss.knockbackVX = dir * BOSS_KNOCKBACK_FORCE;
+export const BOSS_KNOCKBACK_FORCE = 30;
+export const BOSS_HIGH_DAMAGE_THRESHOLD = 20;
 
-    // small upward pop so it reads as being launched back
-    boss.velocityY = -8;
-    boss.grounded = false;
+export const SHAKE_DURATION_FRAMES = 18;
+export const SHAKE_MAGNITUDE = 14;
 
-    triggerScreenShake();
-}
+// ---- boss death / respawn ----
+export const BOSS_RESPAWN_DELAY = 900;
+export const BOSS_DEATH_PIECE_FADE_RATE = 1 / 150;
 
-// =================================================
-// HUD STAT POP ANIMATION
-// =================================================
+// ---- camera ----
+export const CAMERA_DEADZONE = 250;
 
-export function popStat(el) {
-    el.classList.remove("stat-pop");
-    // force a reflow so the animation can restart even if it
-    // was just applied a moment ago
-    void el.offsetWidth;
-    el.classList.add("stat-pop");
-}
+// ---- assets ----
+export const LOGO_URL = "https://assets.skool.com/f/0f7f15bc8d494ed0b4bfb968b9a216e4/541fffc1cea14960993a5a8e0658ab60598d9b6c653e411abc475e6338312e3f";
+export const BACKGROUND_URL = "https://assets.skool.com/f/0f7f15bc8d494ed0b4bfb968b9a216e4/a66063279a524ad8af777aeece2c3241abd6bbc7a4b84671b827ae91be4ce8d7.png";
 
-// =================================================
-// DAMAGE APPLICATION
-// =================================================
+// player sprites - static, one image per state
+export const PLAYER_IDLE_URL = "assets/player/player-idle.png";
+export const PLAYER_FLY_URL = "assets/player/player-fly.png";
 
-export function damagePlayer(amount, sourceX) {
-    player.health -= amount;
-    if (player.health < 0) player.health = 0;
-
-    // taking a hit breaks the player's own outgoing combo
-    stats.combo = 0;
-
-    // ---- combo tracking (for the player's own knockback trigger) ----
-    const now = performance.now();
-
-    if (now - player.lastHitTime <= COMBO_HIT_WINDOW_MS) {
-        player.hitStreak++;
-    } else {
-        player.hitStreak = 1;
-    }
-
-    player.lastHitTime = now;
-
-    const comboTriggered = player.hitStreak >= COMBO_HIT_THRESHOLD;
-    const damageTriggered = amount >= HIGH_DAMAGE_THRESHOLD;
-
-    if (comboTriggered) {
-        player.hitStreak = 0;
-    }
-
-    if (comboTriggered || damageTriggered) {
-        triggerPlayerKnockback(sourceX);
-    }
-
-    // ---- health hit zero - end the game ----
-    if (player.health <= 0 && game.state === "playing") {
-        onPlayerDeath();
-    }
-}
-
-export function damageBoss(boss, amount, sourceX) {
-    boss.health -= amount;
-
-    // little compress-pop reaction when hit, keeps it feeling soft
-    boss.squishVelY += 0.15;
-    boss.squishVelX += (Math.random() - 0.5) * 0.1;
-
-    if (boss.health < 0) boss.health = 0;
-
-    // ---- HUD counters ----
-    stats.hits++;
-    stats.combo++;
-
-    popStat(hud.hitsValue);
-    popStat(hud.comboValue);
-
-    // ---- qualifying hit -> shove the boss back ----
-    if (amount >= BOSS_HIGH_DAMAGE_THRESHOLD) {
-        triggerBossKnockback(boss, sourceX);
-    }
-}
-
-// =================================================
-// HIT FLASH EFFECT
-// Flashes at the moment an attack actually lands - a bright
-// ring + a burst of sparks.
-// =================================================
-
-export function spawnBossHitEffect(x, y, color = "#ff4d4d") {
-    activeObjects.push({
-        type: "bossHit",
-        x,
-        y,
-        life: 1,
-        radius: 8,
-        color,
-    });
-
-    for (let i = 0; i < 8; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 3 + Math.random() * 4;
-
-        activeObjects.push({
-            type: "bossHitSpark",
-            x,
-            y,
-            dx: Math.cos(angle) * speed,
-            dy: Math.sin(angle) * speed,
-            life: 1,
-            color,
-        });
-    }
-}
+// visual size multiplier for the player sprite - the hitbox
+// (player.width/height in state.js) stays the same so dash
+// distance, melee range, etc. don't shift; only the drawn
+// image gets bigger, anchored to the bottom-center of the hitbox
+export const PLAYER_SPRITE_SCALE = 4;
