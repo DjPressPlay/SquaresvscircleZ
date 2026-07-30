@@ -10,6 +10,7 @@ import {
     BACKGROUND_URL,
     PLAYER_IDLE_URL,
     PLAYER_FLY_URL,
+    PLAYER_FLY_AWAY_URL,
     PLAYER_SPRITE_SCALE,
     PLAYER_SPRITE_Y_OFFSET,
     PLAYER_PUNCH_URLS,
@@ -38,6 +39,7 @@ bgImage.src = BACKGROUND_URL;
 const playerSprites = {
     idle: { img: new Image(), loaded: false, src: PLAYER_IDLE_URL },
     fly: { img: new Image(), loaded: false, src: PLAYER_FLY_URL },
+    dashAway: { img: new Image(), loaded: false, src: PLAYER_FLY_AWAY_URL },
 };
 
 // punch (ground click cycle P1-P3) and kick (air click cycle
@@ -355,6 +357,12 @@ function getActivePlayerSprite() {
     if (player.strikePoseType && performance.now() < player.strikePoseUntil) {
         const poseSet = player.strikePoseType === "ground" ? punchSprites : kickSprites;
         return poseSet[player.strikePoseFrame];
+    }
+
+    // while the post-dash smear is visible, show the direction-
+    // relative dash pose instead of the normal fly/idle sprite
+    if (player.smear > 0) {
+        return player.dashPoseType === "away" ? playerSprites.dashAway : playerSprites.fly;
     }
 
     return player.flying ? playerSprites.fly : playerSprites.idle;
