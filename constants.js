@@ -74,6 +74,11 @@ export const BACKGROUND_URL = "https://assets.skool.com/f/0f7f15bc8d494ed0b4bfb9
 export const PLAYER_IDLE_URL = "assets/player/player-idle.png";
 export const PLAYER_FLY_URL = "assets/player/player-fly.png";
 
+// dash-direction sprite - shown while the post-dash smear is
+// visible, in place of fly/idle, when dashing away from the
+// closer enemy (see player.dashPoseType in state.js)
+export const PLAYER_FLY_AWAY_URL = "assets/player/playerflyaway.png";
+
 // click-cycle strike poses - grounded clicks cycle P1->P2->P3,
 // airborne clicks cycle K1->K2->K3, each resuming where it left
 // off. Shown briefly on click, then reverts to idle/fly.
