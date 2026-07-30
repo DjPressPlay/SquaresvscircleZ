@@ -349,10 +349,16 @@ function drawPlayer() {
         // anchor bottom-center to the hitbox, so the visual size
         // grows without moving the character's feet or changing
         // any collision math elsewhere
-        const drawX = player.x + player.width / 2 - drawW / 2;
+        const centerX = player.x + player.width / 2;
         const drawY = player.y + player.height - drawH;
 
-        ctx.drawImage(sprite.img, drawX, drawY, drawW, drawH);
+        // mirror horizontally around the sprite's own center based
+        // on player.facing (1 = right/unflipped, -1 = left/mirrored).
+        // assumes the source art faces right by default - flip the
+        // sign here if it turns out to face left instead.
+        ctx.translate(centerX, 0);
+        ctx.scale(player.facing, 1);
+        ctx.drawImage(sprite.img, -drawW / 2, drawY, drawW, drawH);
     } else {
         // fallback while the sprite is still loading (or missing)
         ctx.fillStyle = "red";
