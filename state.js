@@ -26,6 +26,7 @@ export const player = {
 
     smear: 0,
     dashDirection: 0,
+    dashPoseType: null, // "toward" | "away" - which dash sprite to show while smear > 0
 
     flying: false,
     boosting: false,
