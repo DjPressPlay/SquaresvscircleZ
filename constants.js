@@ -37,7 +37,7 @@ export const CHARGE_DRAIN_PER_FRAME = 0.004;
 export const POWER_REGEN_PER_FRAME = 0.008;
 
 // ---- fly (Q) / boost (Q + S) ----
-export const FLY_EASE = 0.085;
+export const FLY_EASE = 0.045;
 export const FLY_MAX_SPEED = 6;
 
 export const FLY_BOOST_EASE = 0.09;
@@ -73,6 +73,24 @@ export const BACKGROUND_URL = "https://assets.skool.com/f/0f7f15bc8d494ed0b4bfb9
 // player sprites - static, one image per state
 export const PLAYER_IDLE_URL = "assets/player/player-idle.png";
 export const PLAYER_FLY_URL = "assets/player/player-fly.png";
+
+// click-cycle strike poses - grounded clicks cycle P1->P2->P3,
+// airborne clicks cycle K1->K2->K3, each resuming where it left
+// off. Shown briefly on click, then reverts to idle/fly.
+export const PLAYER_PUNCH_URLS = [
+    "assets/player/P1.png",
+    "assets/player/P2.png",
+    "assets/player/P3.png",
+];
+export const PLAYER_KICK_URLS = [
+    "assets/player/K1.png",
+    "assets/player/K2.png",
+    "assets/player/K3.png",
+];
+
+// how long a punch/kick pose stays on screen before reverting
+// back to idle/fly
+export const STRIKE_POSE_DURATION_MS = 180;
 
 // visual size multiplier for the player sprite - the hitbox
 // (player.width/height in state.js) stays the same so dash
