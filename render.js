@@ -6,7 +6,7 @@ import { canvas, ctx } from "./dom.js";
 import { world, player, bosses, camera, activeObjects, screenShake } from "./state.js";
 import { clamp } from "./math.js";
 import { drawFlameParticles } from "./particles.js";
-import { BACKGROUND_URL, PLAYER_IDLE_URL, PLAYER_FLY_URL } from "./constants.js";
+import { BACKGROUND_URL, PLAYER_IDLE_URL, PLAYER_FLY_URL, PLAYER_SPRITE_SCALE } from "./constants.js";
 import { SHAKE_DURATION_FRAMES } from "./constants.js";
 
 // =================================================
@@ -343,7 +343,16 @@ function drawPlayer() {
     const sprite = player.flying ? playerSprites.fly : playerSprites.idle;
 
     if (sprite.loaded) {
-        ctx.drawImage(sprite.img, player.x, player.y, player.width, player.height);
+        const drawW = player.width * PLAYER_SPRITE_SCALE;
+        const drawH = player.height * PLAYER_SPRITE_SCALE;
+
+        // anchor bottom-center to the hitbox, so the visual size
+        // grows without moving the character's feet or changing
+        // any collision math elsewhere
+        const drawX = player.x + player.width / 2 - drawW / 2;
+        const drawY = player.y + player.height - drawH;
+
+        ctx.drawImage(sprite.img, drawX, drawY, drawW, drawH);
     } else {
         // fallback while the sprite is still loading (or missing)
         ctx.fillStyle = "red";
