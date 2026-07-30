@@ -134,6 +134,7 @@ function doDash(direction) {
 
     player.x += direction * dash.distance;
     player.dashDirection = direction;
+    player.dashPoseType = direction === player.facing ? "toward" : "away";
     player.smear = 1;
 
     for (let i = 0; i < 10; i++) {
