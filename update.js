@@ -4,7 +4,7 @@
 
 import { canvas } from "./dom.js";
 import { world, player, bosses, camera, keys, mouse, activeObjects, screenShake } from "./state.js";
-import { CAMERA_DEADZONE, BOSS_HIT_RADIUS } from "./constants.js";
+import { CAMERA_DEADZONE, BOSS_HIT_RADIUS, PLAYER_FACING_TIE_THRESHOLD } from "./constants.js";
 import {
     CHARGE_DRAIN_PER_FRAME,
     POWER_REGEN_PER_FRAME,
@@ -107,6 +107,47 @@ function updateActiveObjects() {
             if (obj.life <= 0) activeObjects.splice(i, 1);
         }
     }
+}
+
+// =================================================
+// PLAYER FACING (visual only - mirrors the sprite)
+// Faces whichever living boss is closer. If both are roughly
+// equally close, or neither is alive, faces whichever side the
+// mouse is on instead. Never affects aiming or hitboxes.
+// =================================================
+
+function updatePlayerFacing() {
+    const playerCenterX = player.x + player.width / 2;
+
+    const living = bosses.filter((b) => b.alive);
+
+    if (living.length === 0) {
+        facePlayerTowardMouse(playerCenterX);
+        return;
+    }
+
+    if (living.length === 1) {
+        const bossCenterX = living[0].x + living[0].width / 2;
+        player.facing = bossCenterX >= playerCenterX ? 1 : -1;
+        return;
+    }
+
+    // two living bosses - compare distances
+    const dists = living.map((b) => Math.abs(b.x + b.width / 2 - playerCenterX));
+
+    if (Math.abs(dists[0] - dists[1]) <= PLAYER_FACING_TIE_THRESHOLD) {
+        facePlayerTowardMouse(playerCenterX);
+        return;
+    }
+
+    const closer = dists[0] < dists[1] ? living[0] : living[1];
+    const closerCenterX = closer.x + closer.width / 2;
+    player.facing = closerCenterX >= playerCenterX ? 1 : -1;
+}
+
+function facePlayerTowardMouse(playerCenterX) {
+    const mouseWorldX = mouse.x + camera.x;
+    player.facing = mouseWorldX >= playerCenterX ? 1 : -1;
 }
 
 // =================================================
@@ -265,4 +306,6 @@ export function update() {
         updateBoss(b);
         updateBossDeathPieces(b);
     }
+
+    updatePlayerFacing();
 }
