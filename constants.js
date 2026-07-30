@@ -79,3 +79,8 @@ export const PLAYER_FLY_URL = "assets/player/player-fly.png";
 // distance, melee range, etc. don't shift; only the drawn
 // image gets bigger, anchored to the bottom-center of the hitbox
 export const PLAYER_SPRITE_SCALE = 4;
+
+// if the two bosses are within this many px of equally close,
+// treat it as a tie and face whichever side the mouse is on
+// instead of arbitrarily picking one
+export const PLAYER_FACING_TIE_THRESHOLD = 40;
