@@ -108,6 +108,11 @@ export const PLAYER_SPRITE_SCALE = 4;
 // touch the hitbox/collision - purely visual.
 export const PLAYER_SPRITE_Y_OFFSET = 8;
 
+// how far (in degrees) the player sprite tilts while being
+// knocked back - snaps to this angle instantly on hit, snaps
+// back to 0 the instant knockbackVX clears (no easing)
+export const PLAYER_KNOCKBACK_TILT_DEGREES = 12;
+
 // if the two bosses are within this many px of equally close,
 // treat it as a tie and face whichever side the mouse is on
 // instead of arbitrarily picking one
