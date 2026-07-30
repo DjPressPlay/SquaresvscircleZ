@@ -69,3 +69,7 @@ export const CAMERA_DEADZONE = 250;
 // ---- assets ----
 export const LOGO_URL = "https://assets.skool.com/f/0f7f15bc8d494ed0b4bfb968b9a216e4/541fffc1cea14960993a5a8e0658ab60598d9b6c653e411abc475e6338312e3f";
 export const BACKGROUND_URL = "https://assets.skool.com/f/0f7f15bc8d494ed0b4bfb968b9a216e4/a66063279a524ad8af777aeece2c3241abd6bbc7a4b84671b827ae91be4ce8d7.png";
+
+// player sprites - static, one image per state
+export const PLAYER_IDLE_URL = "assets/player/player-idle.png";
+export const PLAYER_FLY_URL = "assets/player/player-fly.png";
