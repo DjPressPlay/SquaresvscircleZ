@@ -79,6 +79,10 @@ export const PLAYER_FLY_URL = "assets/player/player-fly.png";
 // closer enemy (see player.dashPoseType in state.js)
 export const PLAYER_FLY_AWAY_URL = "assets/player/playerflyaway.png";
 
+// knockback sprite - shown while player.knockbackVX is nonzero,
+// in place of the fly-away pose (see drawPlayer in render.js)
+export const PLAYER_HIT_AWAY_URL = "assets/player/playerhitaway.png";
+
 // click-cycle strike poses - grounded clicks cycle P1->P2->P3,
 // airborne clicks cycle K1->K2->K3, each resuming where it left
 // off. Shown briefly on click, then reverts to idle/fly.
