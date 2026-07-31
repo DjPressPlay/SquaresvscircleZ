@@ -4,6 +4,7 @@
 
 import { player, mouse, camera, activeObjects, teleportStrike } from "./state.js";
 import { triggerScreenShake, spawnBossHitEffect } from "./combat.js";
+import { CHARGE_RELEASE_POSE_DURATION_MS } from "./constants.js";
 
 // =================================================
 // CHARGE PARTICLE SPEED
@@ -32,6 +33,7 @@ export function releaseChargedShot() {
     player.charging = false;
     player.chargeFrames = 0;
     player.chargeDrained = 0;
+    player.chargeReleasePoseUntil = performance.now() + CHARGE_RELEASE_POSE_DURATION_MS;
 }
 
 export function fireOrb(chargeLevel = 0) {
