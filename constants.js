@@ -83,6 +83,10 @@ export const PLAYER_FLY_AWAY_URL = "assets/player/playerflyaway.png";
 // in place of the fly-away pose (see drawPlayer in render.js)
 export const PLAYER_HIT_AWAY_URL = "assets/player/playerhitaway.png";
 
+// grounded power-charge sprite - shown while holding S on the
+// ground (see player.regening in update.js)
+export const PLAYER_CHARGE_URL = "assets/player/playercharge.png";
+
 // click-cycle strike poses - grounded clicks cycle P1->P2->P3,
 // airborne clicks cycle K1->K2->K3, each resuming where it left
 // off. Shown briefly on click, then reverts to idle/fly.
