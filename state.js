@@ -53,6 +53,7 @@ export const player = {
     lastHitTime: 0,
     knockbackVX: 0,
     knockbackPoseUntil: 0, // performance.now() timestamp - sprite/tilt revert after this
+    chargeReleasePoseUntil: 0, // performance.now() timestamp - chargep2 pose reverts after this (or on any keypress)
 
     // click-cycle strike pose (P1-P3 on ground, K1-K3 in air).
     // each cycle remembers its own position independently and
