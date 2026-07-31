@@ -13,6 +13,8 @@ import {
     PLAYER_FLY_AWAY_URL,
     PLAYER_HIT_AWAY_URL,
     PLAYER_CHARGE_URL,
+    PLAYER_CHARGE_P1_URL,
+    PLAYER_CHARGE_P2_URL,
     PLAYER_SPRITE_SCALE,
     PLAYER_SPRITE_Y_OFFSET,
     PLAYER_PUNCH_URLS,
@@ -45,6 +47,8 @@ const playerSprites = {
     dashAway: { img: new Image(), loaded: false, src: PLAYER_FLY_AWAY_URL },
     hitAway: { img: new Image(), loaded: false, src: PLAYER_HIT_AWAY_URL },
     charge: { img: new Image(), loaded: false, src: PLAYER_CHARGE_URL },
+    chargeP1: { img: new Image(), loaded: false, src: PLAYER_CHARGE_P1_URL },
+    chargeP2: { img: new Image(), loaded: false, src: PLAYER_CHARGE_P2_URL },
 };
 
 // punch (ground click cycle P1-P3) and kick (air click cycle
@@ -378,6 +382,19 @@ function getActivePlayerSprite() {
     // to fully decay, see KNOCKBACK_POSE_DURATION_MS
     if (performance.now() < player.knockbackPoseUntil) {
         return playerSprites.hitAway;
+    }
+
+    // SPACE charge shot - chargep1 for the entire hold, chargep2
+    // for a short window after release (or until any other key
+    // is pressed - see CHARGE_RELEASE_POSE_DURATION_MS). Checked
+    // independently of the grounded S-charge below; whichever
+    // condition is true fires, no override priority between them.
+    if (player.charging) {
+        return playerSprites.chargeP1;
+    }
+
+    if (performance.now() < player.chargeReleasePoseUntil) {
+        return playerSprites.chargeP2;
     }
 
     // grounded power-charge (holding S while not flying) - shown
