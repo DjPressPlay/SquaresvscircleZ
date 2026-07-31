@@ -67,6 +67,11 @@ export function initInput() {
 
     window.addEventListener("keydown", (e) => {
         keys[e.key.toLowerCase()] = true;
+
+        // pressing any other key ends the post-release charge
+        // pose early (player wants to look at/act on whatever
+        // they just fired) - see CHARGE_RELEASE_POSE_DURATION_MS
+        if (e.key !== " ") player.chargeReleasePoseUntil = 0;
     });
 
     window.addEventListener("keyup", (e) => {
