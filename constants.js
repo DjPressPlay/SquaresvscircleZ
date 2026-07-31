@@ -92,6 +92,13 @@ export const PLAYER_HIT_AWAY_URL = "assets/player/playerhitaway.png";
 // ground (see player.regening in update.js)
 export const PLAYER_CHARGE_URL = "assets/player/playercharge.png";
 
+// SPACE charge shot sprites - chargep1 shown for the whole hold,
+// chargep2 shown after release until CHARGE_RELEASE_POSE_DURATION_MS
+// elapses OR the player presses any other key, whichever first
+export const PLAYER_CHARGE_P1_URL = "assets/player/chargep1.png";
+export const PLAYER_CHARGE_P2_URL = "assets/player/chargep2.png";
+export const CHARGE_RELEASE_POSE_DURATION_MS = 400;
+
 // click-cycle strike poses - grounded clicks cycle P1->P2->P3,
 // airborne clicks cycle K1->K2->K3, each resuming where it left
 // off. Shown briefly on click, then reverts to idle/fly.
