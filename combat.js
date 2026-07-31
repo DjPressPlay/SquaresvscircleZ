@@ -9,6 +9,7 @@ import {
     COMBO_HIT_WINDOW_MS,
     HIGH_DAMAGE_THRESHOLD,
     KNOCKBACK_FORCE,
+    KNOCKBACK_POSE_DURATION_MS,
     BOSS_KNOCKBACK_FORCE,
     BOSS_HIGH_DAMAGE_THRESHOLD,
     SHAKE_DURATION_FRAMES,
@@ -72,6 +73,7 @@ export function triggerPlayerKnockback(sourceX) {
             : 1;
 
     player.knockbackVX = dir * KNOCKBACK_FORCE;
+    player.knockbackPoseUntil = performance.now() + KNOCKBACK_POSE_DURATION_MS;
 
     if (!player.flying) {
         player.velocityY = -11;
