@@ -53,6 +53,11 @@ export const HIGH_DAMAGE_THRESHOLD = 20;
 export const KNOCKBACK_FORCE = 30;
 export const KNOCKBACK_DECAY = 0.945;
 
+// how long the hit-away sprite + tilt stay visible after a
+// knockback hit - independent of how long the actual physics
+// knockback (above) takes to fully decay
+export const KNOCKBACK_POSE_DURATION_MS = 250;
+
 export const BOSS_KNOCKBACK_FORCE = 30;
 export const BOSS_HIGH_DAMAGE_THRESHOLD = 20;
 
