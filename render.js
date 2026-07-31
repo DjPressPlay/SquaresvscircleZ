@@ -373,7 +373,10 @@ function getActivePlayerSprite() {
     // while being knocked back from a hit, show the dedicated
     // hit-away pose - independent of the smear check above; no
     // priority between them, whichever condition is true fires
-    if (player.knockbackVX !== 0) {
+    // while the hit-away pose window is active - independent of
+    // how long the physics knockback (knockbackVX) actually takes
+    // to fully decay, see KNOCKBACK_POSE_DURATION_MS
+    if (performance.now() < player.knockbackPoseUntil) {
         return playerSprites.hitAway;
     }
 
@@ -421,14 +424,15 @@ function drawPlayer() {
         ctx.translate(centerX, footY);
         ctx.scale(player.facing, 1);
 
-        // knockback tilt - snaps to a fixed angle for as long as
-        // knockbackVX is nonzero, snaps back to 0 the instant it
-        // clears (no easing in either direction). Leans in the
-        // direction of the knockback push, like a punch impact.
+        // knockback tilt - snaps to a fixed angle for the same
+        // short pose window as the hit-away sprite above (not
+        // tied to the full physics knockback decay), snaps back
+        // to 0 the instant the window ends. Leans in the direction
+        // of the knockback push, like a punch impact.
         // multiplying by player.facing cancels out the mirror
         // above so the lean direction is correct in world space
         // regardless of which way the player is currently facing.
-        if (player.knockbackVX !== 0) {
+        if (performance.now() < player.knockbackPoseUntil && player.knockbackVX !== 0) {
             const tiltRadians = (PLAYER_KNOCKBACK_TILT_DEGREES * Math.PI) / 180;
             const tiltSign = Math.sign(player.knockbackVX);
             ctx.rotate(tiltSign * player.facing * tiltRadians);
