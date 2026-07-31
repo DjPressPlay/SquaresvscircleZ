@@ -11,6 +11,7 @@ import {
     PLAYER_IDLE_URL,
     PLAYER_FLY_URL,
     PLAYER_FLY_AWAY_URL,
+    PLAYER_HIT_AWAY_URL,
     PLAYER_SPRITE_SCALE,
     PLAYER_SPRITE_Y_OFFSET,
     PLAYER_PUNCH_URLS,
@@ -41,6 +42,7 @@ const playerSprites = {
     idle: { img: new Image(), loaded: false, src: PLAYER_IDLE_URL },
     fly: { img: new Image(), loaded: false, src: PLAYER_FLY_URL },
     dashAway: { img: new Image(), loaded: false, src: PLAYER_FLY_AWAY_URL },
+    hitAway: { img: new Image(), loaded: false, src: PLAYER_HIT_AWAY_URL },
 };
 
 // punch (ground click cycle P1-P3) and kick (air click cycle
@@ -366,12 +368,11 @@ function getActivePlayerSprite() {
         return player.dashPoseType === "away" ? playerSprites.dashAway : playerSprites.fly;
     }
 
-    // while being knocked back from a hit, reuse the fly-away
-    // pose - getting shoved back reads the same as dashing away.
-    // independent of the smear check above; no priority between
-    // them, whichever condition is true fires
+    // while being knocked back from a hit, show the dedicated
+    // hit-away pose - independent of the smear check above; no
+    // priority between them, whichever condition is true fires
     if (player.knockbackVX !== 0) {
-        return playerSprites.dashAway;
+        return playerSprites.hitAway;
     }
 
     return player.flying ? playerSprites.fly : playerSprites.idle;
