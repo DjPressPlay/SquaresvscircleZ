@@ -12,6 +12,7 @@ import {
     PLAYER_FLY_URL,
     PLAYER_FLY_AWAY_URL,
     PLAYER_HIT_AWAY_URL,
+    PLAYER_CHARGE_URL,
     PLAYER_SPRITE_SCALE,
     PLAYER_SPRITE_Y_OFFSET,
     PLAYER_PUNCH_URLS,
@@ -43,6 +44,7 @@ const playerSprites = {
     fly: { img: new Image(), loaded: false, src: PLAYER_FLY_URL },
     dashAway: { img: new Image(), loaded: false, src: PLAYER_FLY_AWAY_URL },
     hitAway: { img: new Image(), loaded: false, src: PLAYER_HIT_AWAY_URL },
+    charge: { img: new Image(), loaded: false, src: PLAYER_CHARGE_URL },
 };
 
 // punch (ground click cycle P1-P3) and kick (air click cycle
@@ -373,6 +375,12 @@ function getActivePlayerSprite() {
     // priority between them, whichever condition is true fires
     if (player.knockbackVX !== 0) {
         return playerSprites.hitAway;
+    }
+
+    // grounded power-charge (holding S while not flying) - shown
+    // independently of the checks above, whichever is true fires
+    if (player.regening && player.grounded) {
+        return playerSprites.charge;
     }
 
     return player.flying ? playerSprites.fly : playerSprites.idle;
